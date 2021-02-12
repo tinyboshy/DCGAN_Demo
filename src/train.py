@@ -22,6 +22,13 @@ def weight_init(m):
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
 
+def save_g_images(i, img_list):
+    plt.figure(figsize=(15,15))
+    plt.axis("off")
+    plt.title("Fake Images")
+    plt.imshow(np.transpose(img_list[-1],(1,2,0)))
+    plt.savefig(f'.\\output\\image\\output_{str(i)}.png')
+
 def train():
     # Random Seed
     manual_seed = random.randint(1, 10000)
@@ -34,11 +41,9 @@ def train():
     workers = 2
     batch_size = 128
     image_size = 64
-    nc = 3
     nz = 100
-    ngf = 64
-    ndf = 64
-    num_epochs = 5
+    num_epochs = 100
+
     lr = 0.0002
     beta1 = 0.5
     ngpu = 1
@@ -129,37 +134,21 @@ def train():
             D_losses.append(errD.item())
 
             # Check how the generator is doing by saving G's output on fixed_noise
-            if (iters % 500 == 0) or ((epoch == num_epochs-1) and (i == len(dataloader)-1)):
+            if (iters % 100 == 0) or ((epoch == num_epochs-1) and (i == len(dataloader)-1)):
                 with torch.no_grad():
                     fake = netG(fixed_noise).detach().cpu()
                 img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
 
             iters += 1
 
-    model_path_G = 'generator.pth'
-    model_path_D = 'discriminator.pth'
+        save_g_images(epoch, img_list)
+
+    model_path_G = '.\\output\\model\\generator.pth'
+    model_path_D = '.\\output\\model\\discriminator.pth'
     torch.save(netG, model_path_G)
     torch.save(netD, model_path_D)
 
     print('Finish training.')
-
-    # Grab a batch of real images from the dataloader
-    real_batch = next(iter(dataloader))
-
-    # Plot the real images
-    plt.figure(figsize=(15,15))
-    plt.subplot(1,2,1)
-    plt.axis("off")
-    plt.title("Real Images")
-    plt.imshow(np.transpose(vutils.make_grid(real_batch[0].to(device)[:64], padding=5, normalize=True).cpu(),(1,2,0)))
-
-    # Plot the fake images from the last epoch
-    plt.subplot(1,2,2)
-    plt.axis("off")
-    plt.title("Fake Images")
-    plt.imshow(np.transpose(img_list[-1],(1,2,0)))
-    plt.savefig('output.png')
-
 
 if __name__ == '__main__':
     train()
